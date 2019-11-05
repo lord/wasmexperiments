@@ -3,9 +3,8 @@ extern "C" {
     fn msg(msg: i32);
 }
 
-#[no_mangle]
-pub extern "C" fn main() {
-    let mut n: i32 = 0;
+fn main() {
+    let mut n: i32 = 5;
     loop {
         unsafe { msg(n); }
         unsafe { sleep() }
