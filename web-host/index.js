@@ -1,43 +1,52 @@
-let buffer_location;
-let view;
-let sleeping = false;
-let wasmExports;
-var importObject = {
-  env: {
-    kp_debug_msg: (num) => console.log(num),
-    kp_sleep: (time) => {
-      if (!sleeping) {
-        // We are called in order to start a sleep/unwind.
-        // Fill in the data structure. The first value has the stack location,
-        // which for simplicity we can start right after the data structure itself.
-        view[buffer_location >> 2] = buffer_location + 8;
-        // The end of the stack will not be reached here anyhow.
-        view[buffer_location + 4 >> 2] = buffer_location + 1024 + 8;
-        wasmExports.asyncify_start_unwind(buffer_location);
-        sleeping = true;
-        // Resume after the proper delay.
-        setTimeout(function() {
-          wasmExports.asyncify_start_rewind(buffer_location);
-          // The code is now ready to rewind; to start the process, enter the
-          // first function that should be on the call stack.
-          wasmExports.main();
-        }, time / 1000);
-      } else {
-        // We are called as part of a resume/rewind. Stop sleeping.
-        wasmExports.asyncify_stop_rewind();
-        sleeping = false;
-      }
-    },
+class Instance {
+  constructor(bytes) {
+    this.wasmBytes = bytes;
+    this.instance = null;
+    this.buffer_ptr = null;
+    this.view = null;
+    this.sleeping = false;
   }
-};
+  async build() {
+    let importObject = {
+      env: {
+        kp_debug_msg: (num) => console.log(num),
+        kp_sleep: (time) => {
+          if (!this.sleeping) {
+            // We are called in order to start a sleep/unwind.
+            // Fill in the data structure. The first value has the stack location,
+            // which for simplicity we can start right after the data structure itself.
+            this.view[this.buffer_ptr >> 2] = this.buffer_ptr + 8;
+            // The end of the stack will not be reached here anyhow.
+            this.view[this.buffer_ptr + 4 >> 2] = this.buffer_ptr + 1024 + 8;
+            this.instance.exports.asyncify_start_unwind(this.buffer_ptr);
+            this.sleeping = true;
+            // Resume after the proper delay.
+            setTimeout(() => {
+              this.instance.exports.asyncify_start_rewind(this.buffer_ptr);
+              // The code is now ready to rewind; to start the process, enter the
+              // first function that should be on the call stack.
+              this.instance.exports.main();
+            }, time / 1000);
+          } else {
+            // We are called as part of a resume/rewind. Stop sleeping.
+            this.instance.exports.asyncify_stop_rewind();
+            this.sleeping = false;
+          }
+        },
+      }
+    };
+    let results = await WebAssembly.instantiate(this.wasmBytes, importObject);
+    this.instance = results.instance;
+    this.buffer_ptr = this.instance.exports.stack_buffer_alloc(1024 + 8);
+    this.view = new Int32Array(this.instance.exports.memory.buffer);
+    this.instance.exports.main();
+    this.instance.exports.asyncify_stop_unwind();
+  }
+}
+
 fetch('out.wasm').then(response =>
   response.arrayBuffer()
-).then(bytes =>
-  WebAssembly.instantiate(bytes, importObject)
-).then(results => {
-  wasmExports = results.instance.exports;
-  buffer_location = wasmExports.stack_buffer_alloc(1024 + 8);
-  view = new Int32Array(wasmExports.memory.buffer);
-  wasmExports.main();
-  wasmExports.asyncify_stop_unwind();
-});
+).then(bytes => {
+  let instance = new Instance(bytes);
+  instance.build();
+})
