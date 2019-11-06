@@ -9,38 +9,40 @@ class Instance {
     this.rewind_return_val = null;
   }
   wrap_async(async_fn) {
-    return (...args) => {
-      if (this.rewind_active) {
-        this.rewind_active = false;
-        this.instance.exports.asyncify_stop_rewind();
-        return this.rewind_return_val
-      }
-      // pointer to start of temp buffer
-      this.rewind_view[this.rewind_buffer_ptr >> 2] = this.rewind_buffer_ptr + 8;
-      // pointer to end of temp buffer
-      this.rewind_view[this.rewind_buffer_ptr + 4 >> 2] = this.rewind_buffer_ptr + 1024 + 8;
-
-      this.instance.exports.asyncify_start_unwind(this.rewind_buffer_ptr);
-
-      async_fn(...args).then((res) => {
-        this.rewind_return_val = res;
-        this.rewind_active = true;
-        this.instance.exports.asyncify_start_rewind(this.rewind_buffer_ptr);
-        this.instance.exports.main();
-      })
+    if (this.rewind_active) {
+      this.rewind_active = false;
+      this.instance.exports.asyncify_stop_rewind();
+      return this.rewind_return_val
     }
+    // pointer to start of temp buffer
+    this.rewind_view[this.rewind_buffer_ptr >> 2] = this.rewind_buffer_ptr + 8;
+    // pointer to end of temp buffer
+    this.rewind_view[this.rewind_buffer_ptr + 4 >> 2] = this.rewind_buffer_ptr + 1024 + 8;
+
+    this.instance.exports.asyncify_start_unwind(this.rewind_buffer_ptr);
+
+    async_fn().then((res) => {
+      this.rewind_return_val = res;
+      this.rewind_active = true;
+      this.instance.exports.asyncify_start_rewind(this.rewind_buffer_ptr);
+      this.instance.exports.main();
+    })
   }
-  sleep(ns) {
-    return new Promise(resolve => setTimeout(resolve, ns / 1000))
+  kp_sleep(ns) {
+    this.wrap_async(() => {
+      return new Promise(resolve => setTimeout(resolve, ns / 1000))
+    })
+  }
+  kp_debug_msg(num) {
+    console.log(num)
   }
   async run_main() {
-    let importObject = {
-      env: {
-        kp_debug_msg: (num) => console.log(num),
-        kp_sleep: this.wrap_async(this.sleep),
-      }
-    };
-    let results = await WebAssembly.instantiate(this.wasmBytes, importObject);
+    let env = {};
+    [
+      "kp_debug_msg",
+      "kp_sleep",
+    ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
+    let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
     this.rewind_buffer_ptr = this.instance.exports.stack_buffer_alloc(1024 + 8);
     this.rewind_view = new Int32Array(this.instance.exports.memory.buffer);
