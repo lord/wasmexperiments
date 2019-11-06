@@ -6,8 +6,8 @@ hello
   let wasmExports;
   var importObject = {
     env: {
-      msg: (num) => console.log(num),
-      sleep: () => {
+      kx_debug_msg: (num) => console.log(num),
+      kx_sleep: () => {
         if (!sleeping) {
           // We are called in order to start a sleep/unwind.
           // Fill in the data structure. The first value has the stack location,
