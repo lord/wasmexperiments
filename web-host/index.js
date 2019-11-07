@@ -12,6 +12,7 @@ class Instance {
     this.rewindActive = false;
     this.rewindReturnValue = null;
   }
+
   getUint32(ptr) {
     let n = 0;
     n += this.memoryView[ptr+3];
@@ -23,12 +24,14 @@ class Instance {
     n += this.memoryView[ptr+0];
     return n;
   }
+
   setUint32(ptr, value) {
     this.memoryView[ptr+3] = (0xFF000000 & value) >> (8*3);
     this.memoryView[ptr+2] = (0x00FF0000 & value) >> (8*2);
     this.memoryView[ptr+1] = (0x0000FF00 & value) >> 8;
     this.memoryView[ptr+0] = (0x000000FF & value);
   }
+
   wrap_async(async_fn) {
     if (this.rewindActive) {
       this.rewindActive = false;
@@ -49,9 +52,11 @@ class Instance {
       this.instance.exports.main();
     })
   }
+
   handleOnMessage(receivingHandleId, msg) {
     console.error("call to unimplemented function handleOnMessage")
   }
+
   kp_channel_create(handle_a_ptr, handle_b_ptr) {
     const idA = this.nextHandleId;
     this.nextHandleId += 1;
@@ -66,6 +71,7 @@ class Instance {
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
   }
+
   kp_channel_write(channel, byte_ptr, handle_ptr, byte_count, handle_count) {
     if (!this.channels.hasOwnProperty(channel)) {
       console.error("attempted to write to unknown channel:", channel)
@@ -97,9 +103,11 @@ class Instance {
     addToTransferList(msg)
     this.channels[channel].postMessage(msg, transferList);
   }
+
   kp_channel_read() {
     console.error("call to unimplemented function kp_channel_read")
   }
+
   kp_pollgroup_create(handle_ptr) {
     const id = this.nextHandleId;
     this.nextHandleId += 1;
@@ -107,15 +115,19 @@ class Instance {
     this.pollgroups[id] = {queue: []};
     this.setUint32(handle_ptr, id);
   }
+
   kp_pollgroup_insert() {
     console.error("call to unimplemented function kp_pollgroup_insert")
   }
+
   kp_pollgroup_wait() {
     console.error("call to unimplemented function kp_pollgroup_wait")
   }
+
   kp_pollgroup_cancel() {
     console.error("call to unimplemented function kp_pollgroup_cancel")
   }
+
   kp_generic_close(handle) {
     if (this.pollgroups.hasOwnProperty(handle)) {
       delete this.pollgroups[handle];
@@ -126,14 +138,17 @@ class Instance {
       console.error("attempted to close unknown handle:", handle);
     }
   }
+
   kp_sleep(ns) {
     this.wrap_async(() => {
       return new Promise(resolve => setTimeout(resolve, ns / 1000))
     })
   }
+
   kp_debug_msg(num) {
     console.log(num)
   }
+
   async run_main() {
     let env = {};
     [
