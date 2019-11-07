@@ -61,13 +61,41 @@ class Instance {
     let channel = new MessageChannel();
     channel.port1.onmessage = (e) => this.handleOnMessage(idA, e.data);
     channel.port2.onmessage = (e) => this.handleOnMessage(idB, e.data);
-    this.channels[idA] = {port: channel.port1};
-    this.channels[idB] = {port: channel.port2};
+    this.channels[idA] = {port: channel.port1, queue: []};
+    this.channels[idB] = {port: channel.port2, queue: []};
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
   }
-  kp_channel_write() {
-    console.error("call to unimplemented function kp_channel_write")
+  kp_channel_write(channel, byte_ptr, handle_ptr, byte_count, handle_count) {
+    if (!this.channels.hasOwnProperty(channel)) {
+      console.error("attempted to write to unknown channel:", channel)
+      return
+    }
+    let data = this.instance.exports.memory.buffer.slice(byte_ptr, byte_ptr+byte_count);
+    let handles = [];
+    for (let i = 0; i < handle_count; i++) {
+      let handleId = this.getUint32(handle_ptr + 4*i);
+      if (handleId == channel) {
+        console.error("attempted to write channel handle into itself:", channel)
+        return
+      } else if (!this.channels.hasOwnProperty(handle)) {
+        console.error("attempted to write message containing an unknown channel handle:", channel)
+        return
+      }
+      handles.push(this.channels[handle])
+      delete this.channels[handle];
+    }
+    let transferList = [];
+    let addToTransferList = (msg) => {
+      transferList.push(msg.data);
+      msg.handles.forEach(handle => {
+        transferList.push(handle.port)
+        handle.queue.forEach(addToTransferList)
+      })
+    };
+    let msg = {data, handles};
+    addToTransferList(msg)
+    this.channels[channel].postMessage(msg, transferList);
   }
   kp_channel_read() {
     console.error("call to unimplemented function kp_channel_read")
@@ -95,7 +123,7 @@ class Instance {
       // TODO SEND CLOSE MESSAGE OR SOMETHING??
       delete this.channels[handle];
     } else {
-      console.error("attempted to close handle that did not exist:", handle);
+      console.error("attempted to close unknown handle:", handle);
     }
   }
   kp_sleep(ns) {
