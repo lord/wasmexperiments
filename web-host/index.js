@@ -5,6 +5,7 @@ class Instance {
     this.memoryView = null;
 
     this.channels = {};
+    this.pollgroups = {};
     this.nextHandleId = 1;
 
     this.rewindBufferPtr = null;
@@ -58,10 +59,10 @@ class Instance {
     this.nextHandleId += 1;
 
     let channel = new MessageChannel();
-    this.channels[idA] = channel.port1;
-    this.channels[idB] = channel.port2;
-    this.channels[idA].onmessage = (e) => this.handleOnMessage(idA, e.data);
-    this.channels[idB].onmessage = (e) => this.handleOnMessage(idB, e.data);
+    channel.port1.onmessage = (e) => this.handleOnMessage(idA, e.data);
+    channel.port2.onmessage = (e) => this.handleOnMessage(idB, e.data);
+    this.channels[idA] = {port: channel.port1};
+    this.channels[idB] = {port: channel.port2};
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
   }
@@ -74,8 +75,12 @@ class Instance {
   kp_pollgroup_create() {
     console.error("call to unimplemented function kp_pollgroup_create")
   }
-  kp_pollgroup_insert() {
-    console.error("call to unimplemented function kp_pollgroup_insert")
+  kp_pollgroup_insert(handle_ptr) {
+    const id = this.nextHandleId;
+    this.nextHandleId += 1;
+
+    this.pollgroups[id] = {queue: []};
+    this.setUint32(handle_ptr, id);
   }
   kp_pollgroup_wait() {
     console.error("call to unimplemented function kp_pollgroup_wait")
@@ -83,8 +88,15 @@ class Instance {
   kp_pollgroup_cancel() {
     console.error("call to unimplemented function kp_pollgroup_cancel")
   }
-  kp_generic_close() {
-    console.error("call to unimplemented function kp_generic_close")
+  kp_generic_close(handle) {
+    if (this.pollgroups.hasOwnProperty(handle)) {
+      delete this.pollgroups[handle];
+    } else if (this.channels.hasOwnProperty(handle)) {
+      // TODO SEND CLOSE MESSAGE OR SOMETHING??
+      delete this.channels[handle];
+    } else {
+      console.error("attempted to close handle that did not exist:", handle);
+    }
   }
   kp_sleep(ns) {
     this.wrap_async(() => {
