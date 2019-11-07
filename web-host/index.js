@@ -73,14 +73,14 @@ class Instance {
     console.error("call to unimplemented function kp_channel_read")
   }
   kp_pollgroup_create() {
-    console.error("call to unimplemented function kp_pollgroup_create")
-  }
-  kp_pollgroup_insert(handle_ptr) {
     const id = this.nextHandleId;
     this.nextHandleId += 1;
 
     this.pollgroups[id] = {queue: []};
     this.setUint32(handle_ptr, id);
+  }
+  kp_pollgroup_insert(handle_ptr) {
+    console.error("call to unimplemented function kp_pollgroup_insert")
   }
   kp_pollgroup_wait() {
     console.error("call to unimplemented function kp_pollgroup_wait")
