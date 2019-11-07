@@ -8,6 +8,9 @@ class Instance {
     this.pollgroups = {};
     this.nextHandleId = 1;
 
+    this.waitQueue = null;
+    this.waitDone = null;
+
     this.rewindBufferPtr = null;
     this.rewindActive = false;
     this.rewindReturnValue = null;
@@ -45,16 +48,32 @@ class Instance {
 
     this.instance.exports.asyncify_start_unwind(this.rewindBufferPtr);
 
-    async_fn().then((res) => {
+    let done = (res) => {
       this.rewindReturnValue = res;
       this.rewindActive = true;
       this.instance.exports.asyncify_start_rewind(this.rewindBufferPtr);
       this.instance.exports.main();
-    })
+    }
+    async_fn(done)
   }
 
-  handleOnMessage(receivingHandleId, msg) {
-    console.error("call to unimplemented function handleOnMessage")
+  handleOnMessage(queue, msg) {
+    queue.push(msg);
+    let bindOnMessage = (msg) => {
+      msg.handles.forEach(handle => {
+        handle.port.onmessage = (e) => this.handleOnMessage(handle.queue, e.data)
+        handle.queue.forEach(bindOnMessage)
+      })
+    }
+    bindOnMessage(msg)
+    this.maybeWake();
+  }
+
+  maybeWake() {
+    if (this.waitQueue !== null && this.waitQueue.length > 0) {
+      this.waitQueue = null;
+      this.waitDone();
+    }
   }
 
   kp_channel_create(handle_a_ptr, handle_b_ptr) {
@@ -64,10 +83,12 @@ class Instance {
     this.nextHandleId += 1;
 
     let channel = new MessageChannel();
-    channel.port1.onmessage = (e) => this.handleOnMessage(idA, e.data);
-    channel.port2.onmessage = (e) => this.handleOnMessage(idB, e.data);
-    this.channels[idA] = {port: channel.port1, queue: []};
-    this.channels[idB] = {port: channel.port2, queue: []};
+    let queueA = [];
+    let queueB = [];
+    channel.port1.onmessage = (e) => this.handleOnMessage(queueA, e.data);
+    channel.port2.onmessage = (e) => this.handleOnMessage(queueB, e.data);
+    this.channels[idA] = {port: channel.port1, queue: queueA};
+    this.channels[idB] = {port: channel.port2, queue: queueB};
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
   }
@@ -124,8 +145,16 @@ class Instance {
     console.error("call to unimplemented function kp_pollgroup_cancel")
   }
 
-  kp_generic_wait() {
-    console.error("call to unimplemented function kp_pollgroup_wait")
+  kp_generic_wait(handle, token) {
+    this.wrap_async(done => {
+      if (!this.channels.hasOwnProperty(handle)) {
+        console.error("attempted to wait on unknown channel:", channel)
+        return
+      }
+      this.waitQueue = this.channels[handle].queue;
+      this.waitDone = done;
+      this.maybeWake();
+    })
   }
 
   kp_generic_close(handle) {
@@ -133,6 +162,7 @@ class Instance {
       delete this.pollgroups[handle];
     } else if (this.channels.hasOwnProperty(handle)) {
       // TODO SEND CLOSE MESSAGE OR SOMETHING??
+      this.channels[handle].port.close()
       delete this.channels[handle];
     } else {
       console.error("attempted to close unknown handle:", handle);
@@ -140,8 +170,8 @@ class Instance {
   }
 
   kp_sleep(ns) {
-    this.wrap_async(() => {
-      return new Promise(resolve => setTimeout(resolve, ns / 1000))
+    this.wrap_async(done => {
+      setTimeout(done, ns / 1000)
     })
   }
 

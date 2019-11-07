@@ -9,3 +9,5 @@ sh build.sh
 cd host
 cargo run
 ```
+
+TODO need to consider if the current setup can overflow the stack when processing messages repeatedly
