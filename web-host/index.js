@@ -3,28 +3,28 @@ class Instance {
     this.wasmBytes = bytes;
     this.instance = null;
 
-    this.rewind_buffer_ptr = null;
-    this.rewind_view = null;
-    this.rewind_active = false;
-    this.rewind_return_val = null;
+    this.rewindBufferPtr = null;
+    this.rewindView = null;
+    this.rewindActive = false;
+    this.rewindReturnValue = null;
   }
   wrap_async(async_fn) {
-    if (this.rewind_active) {
-      this.rewind_active = false;
+    if (this.rewindActive) {
+      this.rewindActive = false;
       this.instance.exports.asyncify_stop_rewind();
-      return this.rewind_return_val
+      return this.rewindReturnValue
     }
     // pointer to start of temp buffer
-    this.rewind_view[this.rewind_buffer_ptr >> 2] = this.rewind_buffer_ptr + 8;
+    this.rewindView[this.rewindBufferPtr >> 2] = this.rewindBufferPtr + 8;
     // pointer to end of temp buffer
-    this.rewind_view[this.rewind_buffer_ptr + 4 >> 2] = this.rewind_buffer_ptr + 1024 + 8;
+    this.rewindView[this.rewindBufferPtr + 4 >> 2] = this.rewindBufferPtr + 1024 + 8;
 
-    this.instance.exports.asyncify_start_unwind(this.rewind_buffer_ptr);
+    this.instance.exports.asyncify_start_unwind(this.rewindBufferPtr);
 
     async_fn().then((res) => {
-      this.rewind_return_val = res;
-      this.rewind_active = true;
-      this.instance.exports.asyncify_start_rewind(this.rewind_buffer_ptr);
+      this.rewindReturnValue = res;
+      this.rewindActive = true;
+      this.instance.exports.asyncify_start_rewind(this.rewindBufferPtr);
       this.instance.exports.main();
     })
   }
@@ -44,8 +44,8 @@ class Instance {
     ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
-    this.rewind_buffer_ptr = this.instance.exports.stack_buffer_alloc(1024 + 8);
-    this.rewind_view = new Int32Array(this.instance.exports.memory.buffer);
+    this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
+    this.rewindView = new Int32Array(this.instance.exports.memory.buffer);
     this.instance.exports.main();
     this.instance.exports.asyncify_stop_unwind();
   }
