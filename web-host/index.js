@@ -11,7 +11,7 @@ class Instance {
     this.rewindActive = false;
     this.rewindReturnValue = null;
   }
-  getUInt32(ptr) {
+  getUint32(ptr) {
     let n = 0;
     n += this.memoryView[ptr+3];
     n = n << 8;
@@ -22,7 +22,7 @@ class Instance {
     n += this.memoryView[ptr+0];
     return n;
   }
-  setUInt32(ptr, value) {
+  setUint32(ptr, value) {
     this.memoryView[ptr+3] = (0xFF000000 & value) >> (8*3);
     this.memoryView[ptr+2] = (0x00FF0000 & value) >> (8*2);
     this.memoryView[ptr+1] = (0x0000FF00 & value) >> 8;
@@ -35,9 +35,9 @@ class Instance {
       return this.rewindReturnValue
     }
     // pointer to start of temp buffer
-    this.setUInt32(this.rewindBufferPtr, this.rewindBufferPtr + 8)
+    this.setUint32(this.rewindBufferPtr, this.rewindBufferPtr + 8)
     // pointer to end of temp buffer
-    this.setUInt32(this.rewindBufferPtr + 4, this.rewindBufferPtr + 8 + 1024)
+    this.setUint32(this.rewindBufferPtr + 4, this.rewindBufferPtr + 8 + 1024)
 
     this.instance.exports.asyncify_start_unwind(this.rewindBufferPtr);
 
@@ -62,6 +62,8 @@ class Instance {
     this.channels[idB] = channel.port2;
     this.channels[idA].onmessage = (e) => this.handleMessage(idA, e.data);
     this.channels[idB].onmessage = (e) => this.handleMessage(idB, e.data);
+    this.setUint32(handle_a_ptr, idA);
+    this.setUint32(handle_b_ptr, idB);
   }
   kp_channel_write() {
     console.error("call to unimplemented function kp_channel_write")

@@ -1,4 +1,4 @@
-type Handle = usize;
+pub type Handle = usize;
 
 extern "C" {
     pub fn kp_channel_create(handle_a: *mut Handle, handle_b: *mut Handle);
@@ -23,7 +23,7 @@ extern "C" {
     pub fn kp_generic_close(handle: Handle);
 
     pub fn kp_sleep(time: u32);
-    pub fn kp_debug_msg(msg: i32);
+    pub fn kp_debug_msg(msg: u32);
 }
 
 #[no_mangle]
