@@ -2,11 +2,31 @@ class Instance {
   constructor(bytes) {
     this.wasmBytes = bytes;
     this.instance = null;
+    this.memoryView = null;
+
+    this.channels = {};
+    this.nextHandleId = 1;
 
     this.rewindBufferPtr = null;
-    this.rewindView = null;
     this.rewindActive = false;
     this.rewindReturnValue = null;
+  }
+  getUInt32(ptr) {
+    let n = 0;
+    n += this.memoryView[ptr+3];
+    n = n << 8;
+    n += this.memoryView[ptr+2];
+    n = n << 8;
+    n += this.memoryView[ptr+1];
+    n = n << 8;
+    n += this.memoryView[ptr+0];
+    return n;
+  }
+  setUInt32(ptr, value) {
+    this.memoryView[ptr+3] = (0xFF000000 & value) >> (8*3);
+    this.memoryView[ptr+2] = (0x00FF0000 & value) >> (8*2);
+    this.memoryView[ptr+1] = (0x0000FF00 & value) >> 8;
+    this.memoryView[ptr+0] = (0x000000FF & value);
   }
   wrap_async(async_fn) {
     if (this.rewindActive) {
@@ -15,9 +35,9 @@ class Instance {
       return this.rewindReturnValue
     }
     // pointer to start of temp buffer
-    this.rewindView[this.rewindBufferPtr >> 2] = this.rewindBufferPtr + 8;
+    this.setUInt32(this.rewindBufferPtr, this.rewindBufferPtr + 8)
     // pointer to end of temp buffer
-    this.rewindView[this.rewindBufferPtr + 4 >> 2] = this.rewindBufferPtr + 1024 + 8;
+    this.setUInt32(this.rewindBufferPtr + 4, this.rewindBufferPtr + 8 + 1024)
 
     this.instance.exports.asyncify_start_unwind(this.rewindBufferPtr);
 
@@ -28,8 +48,20 @@ class Instance {
       this.instance.exports.main();
     })
   }
-  kp_channel_create() {
-    console.error("call to unimplemented function kp_channel_create")
+  handleMessage(receivingHandleId, msg) {
+    console.error("call to unimplemented function handleMessage")
+  }
+  kp_channel_create(handle_a_ptr, handle_b_ptr) {
+    const idA = this.nextHandleId;
+    this.nextHandleId += 1;
+    const idB = this.nextHandleId;
+    this.nextHandleId += 1;
+
+    let channel = new MessageChannel();
+    this.channels[idA] = channel.port1;
+    this.channels[idB] = channel.port2;
+    this.channels[idA].onmessage = (e) => this.handleMessage(idA, e.data);
+    this.channels[idB].onmessage = (e) => this.handleMessage(idB, e.data);
   }
   kp_channel_write() {
     console.error("call to unimplemented function kp_channel_write")
@@ -77,7 +109,7 @@ class Instance {
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
     this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
-    this.rewindView = new Int32Array(this.instance.exports.memory.buffer);
+    this.memoryView = new Uint8Array(this.instance.exports.memory.buffer);
     this.instance.exports.main();
     this.instance.exports.asyncify_stop_unwind();
   }
