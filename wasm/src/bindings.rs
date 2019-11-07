@@ -17,9 +17,9 @@ extern "C" {
 
     pub fn kp_pollgroup_create(handle: *mut Handle);
     pub fn kp_pollgroup_insert(pollgroup: Handle, channel: Handle, token: u32);
-    pub fn kp_pollgroup_wait(handle: Handle, token: *mut u32);
     pub fn kp_pollgroup_cancel(handle: Handle, token: u32);
 
+    pub fn kp_generic_wait(handle: Handle, token: *mut u32);
     pub fn kp_generic_close(handle: Handle);
 
     pub fn kp_sleep(time: u32);

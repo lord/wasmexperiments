@@ -120,12 +120,12 @@ class Instance {
     console.error("call to unimplemented function kp_pollgroup_insert")
   }
 
-  kp_pollgroup_wait() {
-    console.error("call to unimplemented function kp_pollgroup_wait")
-  }
-
   kp_pollgroup_cancel() {
     console.error("call to unimplemented function kp_pollgroup_cancel")
+  }
+
+  kp_generic_wait() {
+    console.error("call to unimplemented function kp_pollgroup_wait")
   }
 
   kp_generic_close(handle) {
@@ -157,8 +157,8 @@ class Instance {
       "kp_channel_read",
       "kp_pollgroup_create",
       "kp_pollgroup_insert",
-      "kp_pollgroup_wait",
       "kp_pollgroup_cancel",
+      "kp_generic_wait",
       "kp_generic_close",
       "kp_sleep",
       "kp_debug_msg",
