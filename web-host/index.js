@@ -48,8 +48,8 @@ class Instance {
       this.instance.exports.main();
     })
   }
-  handleMessage(receivingHandleId, msg) {
-    console.error("call to unimplemented function handleMessage")
+  handleOnMessage(receivingHandleId, msg) {
+    console.error("call to unimplemented function handleOnMessage")
   }
   kp_channel_create(handle_a_ptr, handle_b_ptr) {
     const idA = this.nextHandleId;
@@ -60,8 +60,8 @@ class Instance {
     let channel = new MessageChannel();
     this.channels[idA] = channel.port1;
     this.channels[idB] = channel.port2;
-    this.channels[idA].onmessage = (e) => this.handleMessage(idA, e.data);
-    this.channels[idB].onmessage = (e) => this.handleMessage(idB, e.data);
+    this.channels[idA].onmessage = (e) => this.handleOnMessage(idA, e.data);
+    this.channels[idB].onmessage = (e) => this.handleOnMessage(idB, e.data);
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
   }
