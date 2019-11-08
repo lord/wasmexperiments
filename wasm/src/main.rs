@@ -1,6 +1,6 @@
 mod bindings;
 
-fn main() {
+fn main(startup_handle: bindings::Handle) {
     let mut n: u32 = 1;
     loop {
         unsafe { bindings::kp_debug_msg(n); }

@@ -179,6 +179,10 @@ class Instance {
     console.log(num)
   }
 
+  kp_args(handle_ptr) {
+    console.error("call to unimplemented function kp_args")
+  }
+
   async run_main() {
     let env = {};
     [
@@ -192,12 +196,13 @@ class Instance {
       "kp_generic_close",
       "kp_sleep",
       "kp_debug_msg",
+      "kp_args",
     ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
     this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
     this.memoryView = new Uint8Array(this.instance.exports.memory.buffer);
-    this.instance.exports.main();
+    this.instance.exports.main(123);
     this.instance.exports.asyncify_stop_unwind();
   }
 }

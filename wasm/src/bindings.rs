@@ -22,8 +22,9 @@ extern "C" {
     pub fn kp_generic_wait(handle: Handle, token: *mut u32);
     pub fn kp_generic_close(handle: Handle);
 
-    pub fn kp_sleep(time: u32);
+    pub fn kp_sleep(time: u32); // TODO sleep could be simplified into a pollgroup timeout
     pub fn kp_debug_msg(msg: u32);
+    pub fn kp_args(bootstrap_handle: *mut Handle);
 }
 
 #[no_mangle]
