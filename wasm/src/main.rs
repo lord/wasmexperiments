@@ -34,8 +34,6 @@ fn main() {
         }
 
         unsafe { bindings::sys::kp_sleep(500000) }
-        unsafe { bindings::sys::kp_generic_close(a.handle); }
-        unsafe { bindings::sys::kp_generic_close(b.handle); }
         n += 1;
     }
 }

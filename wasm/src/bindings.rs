@@ -40,6 +40,14 @@ impl Channel {
         unsafe {sys::kp_channel_create(&mut a as *mut Handle, &mut b as *mut Handle);}
         (Channel{handle: a}, Channel{handle: b})
     }
+    pub fn close(self) {
+        // drop self
+    }
+}
+impl Drop for Channel {
+    fn drop(&mut self) {
+        unsafe {sys::kp_generic_close(self.handle);}
+    }
 }
 
 #[no_mangle]
