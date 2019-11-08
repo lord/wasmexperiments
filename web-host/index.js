@@ -106,12 +106,13 @@ class Instance {
       if (handleId == channel) {
         console.error("attempted to write channel handle into itself:", channel)
         return
-      } else if (!this.channels.hasOwnProperty(handle)) {
+      } else if (!this.channels.hasOwnProperty(handleId)) {
         console.error("attempted to write message containing an unknown channel handle:", channel)
         return
       }
-      handles.push(this.channels[handle])
-      delete this.channels[handle];
+      let chan = this.channels[handleId];
+      handles.push(chan)
+      delete this.channels[handleId];
     }
     let transferList = [];
     let addToTransferList = (msg) => {
@@ -152,7 +153,7 @@ class Instance {
     let handleIds = msg.handles.map(handle => {
       let id = this.nextHandleId;
       this.nextHandleId += 1;
-      this.handles[id] = handle;
+      this.channels[id] = handle;
       return id;
     });
 
@@ -185,6 +186,7 @@ class Instance {
         console.error("attempted to wait on unknown channel:", channel)
         return
       }
+      console.log(this.channels[handle])
       this.waitQueue = this.channels[handle].queue;
       this.waitDone = done;
       setTimeout(() => this.maybeWake(), 0);

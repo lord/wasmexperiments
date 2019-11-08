@@ -39,14 +39,16 @@ pub fn sleep(us: u32) {
 }
 
 pub struct Channel {
-    pub handle: Handle,
+    handle: Handle,
+    /// if true, drop will not close the channel
+    moved: bool,
 }
 impl Channel {
     pub fn new() -> (Channel, Channel) {
         let mut a: Handle = 0;
         let mut b: Handle = 0;
         unsafe {sys::kp_channel_create(&mut a as *mut Handle, &mut b as *mut Handle);}
-        (Channel{handle: a}, Channel{handle: b})
+        (Channel{handle: a, moved: false}, Channel{handle: b, moved: false})
     }
 
     pub fn close(self) {
@@ -54,7 +56,10 @@ impl Channel {
     }
 
     pub fn write(&self, buf: &[u8], channels: Vec<Channel>) {
-        let handles: Vec<Handle> = channels.into_iter().map(|chan| chan.handle).collect();
+        let handles: Vec<Handle> = channels.into_iter().map(|mut chan| {
+            chan.moved = true;
+            chan.handle
+        }).collect();
         unsafe { sys::kp_channel_write(self.handle, buf.as_ptr(), handles.as_ptr(), buf.len(), handles.len()); }
     }
 
@@ -79,7 +84,7 @@ impl Channel {
                     handles.set_len(channel_len);
                 }
                 for handle in handles {
-                    channels.push(Channel{handle});
+                    channels.push(Channel{handle, moved: false});
                 }
             }
             // need longer buffers
@@ -101,7 +106,9 @@ impl Channel {
 }
 impl Drop for Channel {
     fn drop(&mut self) {
-        unsafe {sys::kp_generic_close(self.handle);}
+        if !self.moved {
+            unsafe {sys::kp_generic_close(self.handle);}
+        }
     }
 }
 
