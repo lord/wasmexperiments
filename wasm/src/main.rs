@@ -31,7 +31,7 @@ fn main() {
             bindings::log(*byte);
         }
 
-        unsafe { bindings::sys::kp_sleep(500000) }
+        bindings::sleep(1_000_000);
         n += 1;
     }
 }

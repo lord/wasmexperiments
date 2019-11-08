@@ -202,9 +202,9 @@ class Instance {
     }
   }
 
-  kp_sleep(ns) {
+  kp_sleep(us) {
     this.wrap_async(done => {
-      setTimeout(done, ns / 1000)
+      setTimeout(done, us / 1000)
     })
   }
 

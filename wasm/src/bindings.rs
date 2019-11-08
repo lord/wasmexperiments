@@ -34,6 +34,10 @@ pub fn log<T: Into<u32>>(msg: T) {
     unsafe { sys::kp_debug_msg(msg.into()); }
 }
 
+pub fn sleep(us: u32) {
+    unsafe { sys::kp_sleep(us); }
+}
+
 pub struct Channel {
     pub handle: Handle,
 }
