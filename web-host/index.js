@@ -125,8 +125,40 @@ class Instance {
     this.channels[channel].postMessage(msg, transferList);
   }
 
-  kp_channel_read() {
-    console.error("call to unimplemented function kp_channel_read")
+  kp_channel_read(channel, byte_ptr, handle_ptr,
+                           byte_count, handle_count,
+                           byte_actual_count_ptr, handle_actual_count_ptr) {
+    if (!this.channels.hasOwnProperty(channel)) {
+      console.error("attempted to read from unknown channel:", channel)
+      return
+    }
+    if (this.channels[channel].queue.length === 0) {
+      console.error("channel had no pending messages", channel)
+      return
+    }
+    if (byte_actual_count_ptr !== 0) {
+      this.setUint32(byte_actual_count_ptr, this.channels[channel].queue[0].data.length)
+    }
+    if (handle_actual_count_ptr !== 0) {
+      this.setUint32(handle_actual_count_ptr, this.channels[channel].queue[0].handles.length)
+    }
+    if (this.channels[channel].queue[0].data.length > byte_count
+      || this.channels[channel].queue[0].handles.length > handle_count) {
+      console.warn("buffer was not long enough to receive message on channel", channel)
+      return
+    }
+    let msg = this.channels[channel].queue.shift();
+    let handleIds = msg.handles.map(handle => {
+      let id = this.nextHandleId;
+      this.nextHandleId += 1;
+      this.handles[id] = handle;
+      return id;
+    });
+
+    this.memoryView.set(msg.data, byte_ptr);
+    for (let i = 0; i < handleIds.length; i++) {
+      this.setUint32(handle_ptr + i*4, handleIds[i]);
+    }
   }
 
   kp_pollgroup_create(handle_ptr) {
