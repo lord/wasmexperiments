@@ -146,7 +146,7 @@ class Instance {
     }
     if (this.channels[channel].queue[0].data.byteLength > byte_count
       || this.channels[channel].queue[0].handles.length > handle_count) {
-      console.warn("buffer was not long enough to receive message on channel", channel)
+      // buffer not long enough, return error
       return 2;
     }
     let msg = this.channels[channel].queue.shift();
