@@ -53,6 +53,7 @@ class Instance {
       this.rewindActive = true;
       this.instance.exports.asyncify_start_rewind(this.rewindBufferPtr);
       this.instance.exports.main();
+      this.instance.exports.asyncify_stop_unwind();
     }
     async_fn(done)
   }
@@ -122,7 +123,7 @@ class Instance {
     };
     let msg = {data, handles};
     addToTransferList(msg)
-    this.channels[channel].postMessage(msg, transferList);
+    this.channels[channel].port.postMessage(msg, transferList);
   }
 
   kp_channel_read(channel, byte_ptr, handle_ptr,
@@ -137,12 +138,12 @@ class Instance {
       return
     }
     if (byte_actual_count_ptr !== 0) {
-      this.setUint32(byte_actual_count_ptr, this.channels[channel].queue[0].data.length)
+      this.setUint32(byte_actual_count_ptr, this.channels[channel].queue[0].data.byteLength)
     }
     if (handle_actual_count_ptr !== 0) {
       this.setUint32(handle_actual_count_ptr, this.channels[channel].queue[0].handles.length)
     }
-    if (this.channels[channel].queue[0].data.length > byte_count
+    if (this.channels[channel].queue[0].data.byteLength > byte_count
       || this.channels[channel].queue[0].handles.length > handle_count) {
       console.warn("buffer was not long enough to receive message on channel", channel)
       return
@@ -155,7 +156,8 @@ class Instance {
       return id;
     });
 
-    this.memoryView.set(msg.data, byte_ptr);
+    console.log(msg.data, byte_ptr)
+    this.memoryView.set(new Uint8Array(msg.data), byte_ptr);
     for (let i = 0; i < handleIds.length; i++) {
       this.setUint32(handle_ptr + i*4, handleIds[i]);
     }
@@ -185,7 +187,7 @@ class Instance {
       }
       this.waitQueue = this.channels[handle].queue;
       this.waitDone = done;
-      this.maybeWake();
+      setTimeout(() => this.maybeWake(), 0);
     })
   }
 
@@ -193,7 +195,7 @@ class Instance {
     if (this.pollgroups.hasOwnProperty(handle)) {
       delete this.pollgroups[handle];
     } else if (this.channels.hasOwnProperty(handle)) {
-      // TODO SEND CLOSE MESSAGE OR SOMETHING??
+      // TODO HANDLE CLOSE FROM OTHER SIDE
       this.channels[handle].port.close()
       delete this.channels[handle];
     } else {
@@ -234,7 +236,7 @@ class Instance {
     this.instance = results.instance;
     this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
     this.memoryView = new Uint8Array(this.instance.exports.memory.buffer);
-    this.instance.exports.main(123);
+    this.instance.exports.main();
     this.instance.exports.asyncify_stop_unwind();
   }
 }
