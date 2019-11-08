@@ -156,7 +156,6 @@ class Instance {
       return id;
     });
 
-    console.log(msg.data, byte_ptr)
     this.memoryView.set(new Uint8Array(msg.data), byte_ptr);
     for (let i = 0; i < handleIds.length; i++) {
       this.setUint32(handle_ptr + i*4, handleIds[i]);

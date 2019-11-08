@@ -5,8 +5,8 @@ pub mod sys {
     extern "C" {
         pub fn kp_channel_create(handle_a: *mut Handle, handle_b: *mut Handle);
         pub fn kp_channel_write(channel: Handle,
-                                bytes: *mut u8,
-                                handles: *mut Handle,
+                                bytes: *const u8,
+                                handles: *const Handle,
                                 byte_count: usize,
                                 handle_count: usize);
         pub fn kp_channel_read(channel: Handle,
@@ -30,6 +30,10 @@ pub mod sys {
     }
 }
 
+pub fn log<T: Into<u32>>(msg: T) {
+    unsafe { sys::kp_debug_msg(msg.into()); }
+}
+
 pub struct Channel {
     pub handle: Handle,
 }
@@ -40,8 +44,18 @@ impl Channel {
         unsafe {sys::kp_channel_create(&mut a as *mut Handle, &mut b as *mut Handle);}
         (Channel{handle: a}, Channel{handle: b})
     }
+
     pub fn close(self) {
         // drop self
+    }
+
+    pub fn write(&self, buf: &[u8], channels: Vec<Channel>) {
+        let handles: Vec<Handle> = channels.into_iter().map(|chan| chan.handle).collect();
+        unsafe { sys::kp_channel_write(self.handle, buf.as_ptr(), handles.as_ptr(), buf.len(), handles.len()); }
+    }
+
+    pub fn sync_wait(&self) {
+        unsafe { sys::kp_generic_wait(self.handle, 0 as *mut u32); }
     }
 }
 impl Drop for Channel {
