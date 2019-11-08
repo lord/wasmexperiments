@@ -1,6 +1,6 @@
 pub type Handle = usize;
 
-pub mod sys {
+mod sys {
     use super::Handle;
     extern "C" {
         pub fn kp_channel_create(handle_a: *mut Handle, handle_b: *mut Handle);
@@ -15,7 +15,7 @@ pub mod sys {
                                 byte_count: usize,
                                 handle_count: usize,
                                 byte_actual_count: *mut usize,
-                                handle_actual_count: *mut usize);
+                                handle_actual_count: *mut usize) -> u32;
 
         pub fn kp_pollgroup_create(handle: *mut Handle);
         pub fn kp_pollgroup_insert(pollgroup: Handle, channel: Handle, token: u32);
@@ -56,6 +56,43 @@ impl Channel {
     pub fn write(&self, buf: &[u8], channels: Vec<Channel>) {
         let handles: Vec<Handle> = channels.into_iter().map(|chan| chan.handle).collect();
         unsafe { sys::kp_channel_write(self.handle, buf.as_ptr(), handles.as_ptr(), buf.len(), handles.len()); }
+    }
+
+    pub fn read(&self, buf: &mut Vec<u8>, channels: &mut Vec<Channel>) {
+        buf.clear();
+        channels.clear();
+        let mut handles = Vec::with_capacity(channels.capacity());
+        let mut buf_len: usize = 0;
+        let mut channel_len: usize = 0;
+        let res = unsafe {
+            sys::kp_channel_read(
+                self.handle,
+                buf.as_mut_ptr(), handles.as_mut_ptr(),
+                buf.capacity(), handles.capacity(),
+                &mut buf_len as *mut usize, &mut channel_len as *mut usize)
+        };
+        match res {
+            // OK
+            0 => {
+                unsafe {
+                    buf.set_len(buf_len);
+                    handles.set_len(channel_len);
+                }
+                for handle in handles {
+                    channels.push(Channel{handle});
+                }
+            }
+            // need longer buffers
+            2 => {
+                buf.reserve(buf_len);
+                channels.reserve(channel_len);
+                self.read(buf, channels);
+            }
+            // other error
+            _ => {
+                panic!("error while reading from channel");
+            }
+        }
     }
 
     pub fn sync_wait(&self) {

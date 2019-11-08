@@ -131,11 +131,11 @@ class Instance {
                            byte_actual_count_ptr, handle_actual_count_ptr) {
     if (!this.channels.hasOwnProperty(channel)) {
       console.error("attempted to read from unknown channel:", channel)
-      return
+      return 1
     }
     if (this.channels[channel].queue.length === 0) {
       console.error("channel had no pending messages", channel)
-      return
+      return 1
     }
     if (byte_actual_count_ptr !== 0) {
       this.setUint32(byte_actual_count_ptr, this.channels[channel].queue[0].data.byteLength)
@@ -146,7 +146,7 @@ class Instance {
     if (this.channels[channel].queue[0].data.byteLength > byte_count
       || this.channels[channel].queue[0].handles.length > handle_count) {
       console.warn("buffer was not long enough to receive message on channel", channel)
-      return
+      return 2;
     }
     let msg = this.channels[channel].queue.shift();
     let handleIds = msg.handles.map(handle => {
@@ -160,6 +160,7 @@ class Instance {
     for (let i = 0; i < handleIds.length; i++) {
       this.setUint32(handle_ptr + i*4, handleIds[i]);
     }
+    return 0;
   }
 
   kp_pollgroup_create(handle_ptr) {
