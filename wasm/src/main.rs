@@ -8,36 +8,34 @@ fn main() {
     let mut buf_len: usize = 0;
     let mut handle_len: usize = 0;
     loop {
-        let mut a: bindings::Handle = 0;
-        let mut b: bindings::Handle = 0;
-        unsafe { bindings::kp_channel_create(&mut a as *mut bindings::Handle, &mut b as *mut bindings::Handle); }
+        let (a, b) = bindings::Channel::new();
 
-        unsafe { bindings::kp_channel_write(b, msgbuf2.as_mut_ptr(), 0 as *mut bindings::Handle, 10, 0); }
-        unsafe { bindings::kp_channel_write(a, msgbuf1.as_mut_ptr(), 0 as *mut bindings::Handle, 10, 0); }
+        unsafe { bindings::sys::kp_channel_write(b.handle, msgbuf2.as_mut_ptr(), 0 as *mut bindings::Handle, 10, 0); }
+        unsafe { bindings::sys::kp_channel_write(a.handle, msgbuf1.as_mut_ptr(), 0 as *mut bindings::Handle, 10, 0); }
 
-        unsafe { bindings::kp_generic_wait(a, 0 as *mut u32); }
+        unsafe { bindings::sys::kp_generic_wait(a.handle, 0 as *mut u32); }
         unsafe {
-            bindings::kp_channel_read(a, msgbuf3.as_mut_ptr(), 0 as *mut bindings::Handle,
+            bindings::sys::kp_channel_read(a.handle, msgbuf3.as_mut_ptr(), 0 as *mut bindings::Handle,
                                          10, 0,
                                         &mut buf_len as *mut usize, &mut handle_len as *mut usize); }
 
         for byte in &msgbuf3 {
-            unsafe { bindings::kp_debug_msg(*byte as u32); }
+            unsafe { bindings::sys::kp_debug_msg(*byte as u32); }
         }
 
-        unsafe { bindings::kp_generic_wait(b, 0 as *mut u32); }
+        unsafe { bindings::sys::kp_generic_wait(b.handle, 0 as *mut u32); }
         unsafe {
-            bindings::kp_channel_read(b, msgbuf3.as_mut_ptr(), 0 as *mut bindings::Handle,
+            bindings::sys::kp_channel_read(b.handle, msgbuf3.as_mut_ptr(), 0 as *mut bindings::Handle,
                                          10, 0,
                                         &mut buf_len as *mut usize, &mut handle_len as *mut usize); }
 
         for byte in &msgbuf3 {
-            unsafe { bindings::kp_debug_msg(*byte as u32); }
+            unsafe { bindings::sys::kp_debug_msg(*byte as u32); }
         }
 
-        unsafe { bindings::kp_sleep(500000) }
-        unsafe { bindings::kp_generic_close(a); }
-        unsafe { bindings::kp_generic_close(b); }
+        unsafe { bindings::sys::kp_sleep(500000) }
+        unsafe { bindings::sys::kp_generic_close(a.handle); }
+        unsafe { bindings::sys::kp_generic_close(b.handle); }
         n += 1;
     }
 }
