@@ -218,8 +218,9 @@ class Instance {
     console.error("call to unimplemented function kp_args")
   }
 
-  async run_main() {
+  async run_main(memory) {
     let env = {};
+    env.memory = memory;
     [
       "kp_channel_create",
       "kp_channel_write",
@@ -253,6 +254,6 @@ onmessage = function(e) {
     response.arrayBuffer()
   ).then(bytes => {
     let instance = new Instance(bytes);
-    instance.run_main();
+    instance.run_main(e.data.memory);
   })
 }
