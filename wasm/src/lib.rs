@@ -1,6 +1,7 @@
 mod bindings;
 
-fn main() {
+#[no_mangle]
+pub extern fn main() {
     loop {
         let mut buf = Vec::new();
         let mut handles = Vec::new();
