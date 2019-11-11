@@ -237,7 +237,7 @@ class Instance {
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
     this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
-    this.memoryView = new Uint8Array(this.instance.exports.memory.buffer);
+    this.memoryView = new Uint8Array(memory);
     this.instance.exports.main();
     this.instance.exports.asyncify_stop_unwind();
   }
@@ -254,6 +254,6 @@ onmessage = function(e) {
     response.arrayBuffer()
   ).then(bytes => {
     let instance = new Instance(bytes);
-    instance.run_main(e.data.memory);
+    instance.run_main(e.data.memory).catch(console.error);
   })
 }
