@@ -1,5 +1,32 @@
 pub type Handle = usize;
 
+#[repr(C)]
+struct RingRequest {
+    /// - `1`: channel read
+    /// - `2`: channel write
+    req_type: u16,
+    user_token: u64,
+    target_handle: Handle,
+
+    buffer_ptr: *mut u8,
+    buffer_len: usize,
+
+    handles_ptr: *mut Handle,
+    handles_len: usize,
+}
+
+#[repr(C)]
+struct RingResponse {
+    /// - `0`: ok
+    /// - `1`: unknown handle
+    /// - `2`: buffer/handles not long enough; use lengths in buffer_len and handles_len
+    resp_type: u16,
+    user_token: u64,
+
+    buffer_len: usize,
+    handles_len: usize,
+}
+
 mod sys {
     use super::Handle;
     extern "C" {
@@ -10,7 +37,7 @@ mod sys {
             handles: *const Handle,
             byte_count: usize,
             handle_count: usize,
-        );
+        ); // DEPRECATED
         pub fn kp_channel_read(
             channel: Handle,
             bytes: *mut u8,
@@ -19,18 +46,17 @@ mod sys {
             handle_count: usize,
             byte_actual_count: *mut usize,
             handle_actual_count: *mut usize,
-        ) -> u32;
+        ) -> u32; // DEPRECATED
 
-        pub fn kp_pollgroup_create(handle: *mut Handle);
-        pub fn kp_pollgroup_insert(pollgroup: Handle, channel: Handle, token: u32);
-        pub fn kp_pollgroup_cancel(handle: Handle, token: u32);
+        pub fn kp_ring_create(ring: *mut Handle, req_ptr: usize, req_len: usize, resp_ptr: usize, resp_len: usize);
+        pub fn kp_ring_enter(ring: Handle, min_process: u32, min_complete: u32, max_time: u32);
 
-        pub fn kp_generic_wait(handle: Handle, token: *mut u32);
+        pub fn kp_generic_wait(handle: Handle, token: *mut u32); // DEPRECATED
         pub fn kp_generic_close(handle: Handle);
 
-        pub fn kp_sleep(time: u32); // TODO sleep could be simplified into a pollgroup timeout
-        pub fn kp_debug_msg(msg: u32);
-        pub fn kp_args(bootstrap_handle: *mut Handle);
+        pub fn kp_sleep(time: u32); // DEPRECATED
+        pub fn kp_debug_msg(msg: u32); // DEPRECATED
+        pub fn kp_bootstrap(bootstrap_handle: *mut Handle);
     }
 }
 
