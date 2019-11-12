@@ -99,7 +99,7 @@ class Instance {
       console.error("attempted to write to unknown channel:", channel)
       return
     }
-    let data = this.instance.exports.memory.buffer.slice(byte_ptr, byte_ptr+byte_count);
+    let data = this.memory.buffer.slice(byte_ptr, byte_ptr+byte_count);
     let handles = [];
     for (let i = 0; i < handle_count; i++) {
       let handleId = this.getUint32(handle_ptr + 4*i);
@@ -116,7 +116,6 @@ class Instance {
     }
     let transferList = [];
     let addToTransferList = (msg) => {
-      transferList.push(msg.data);
       msg.handles.forEach(handle => {
         transferList.push(handle.port)
         handle.queue.forEach(addToTransferList)
@@ -183,7 +182,7 @@ class Instance {
   kp_generic_wait(handle, token) {
     this.wrap_async(done => {
       if (!this.channels.hasOwnProperty(handle)) {
-        console.error("attempted to wait on unknown channel:", channel)
+        console.error("attempted to wait on unknown channel:", handle)
         return
       }
       this.waitQueue = this.channels[handle].queue;
@@ -221,6 +220,7 @@ class Instance {
   async run_main(memory) {
     let env = {};
     env.memory = memory;
+    this.memory = memory;
     [
       "kp_channel_create",
       "kp_channel_write",
@@ -236,10 +236,10 @@ class Instance {
     ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
-    // this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
-    this.memoryView = new Uint8Array(memory);
+    this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
+    this.memoryView = new Uint8Array(this.memory.buffer);
     this.instance.exports.main();
-    // this.instance.exports.asyncify_stop_unwind();
+    this.instance.exports.asyncify_stop_unwind();
   }
 }
 
