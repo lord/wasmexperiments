@@ -3,6 +3,7 @@ mod bindings;
 #[no_mangle]
 pub extern fn main() {
     loop {
+        bindings::log(std::mem::size_of::<bindings::RingResponse>() as u32);
         let mut buf = Vec::new();
         let mut handles = Vec::new();
         let mut handles2 = Vec::new();
@@ -17,14 +18,14 @@ pub extern fn main() {
         b.read(&mut buf, &mut handles);
 
         for byte in &buf {
-            bindings::log(*byte);
+            // bindings::log(*byte);
         }
 
         handles[0].sync_wait();
         handles[0].read(&mut buf, &mut handles2);
 
         for byte in &buf {
-            bindings::log(*byte);
+            // bindings::log(*byte);
         }
 
         bindings::sleep(1_000_000);

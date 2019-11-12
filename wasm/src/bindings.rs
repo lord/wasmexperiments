@@ -3,7 +3,7 @@ pub type Handle = usize;
 /// Contains a bunch of offsets that index into the created buffer, corresponding to various parts
 /// of the ring.
 #[repr(C)]
-struct RingParams {
+pub struct RingParams {
     dropped: u32,
 
     request_head: u32,
@@ -17,31 +17,33 @@ struct RingParams {
     response_first: u32,
 }
 
+// size: 28
 #[repr(C)]
-struct RingRequest {
+pub struct RingRequest {
     /// - `1`: channel read
     /// - `2`: channel write
-    req_type: u16,
-    user_token: u64,
+    req_type: u32,
+    user_token: u32,
     target_handle: Handle,
 
     buffer_ptr: *mut u8,
-    buffer_len: usize,
+    buffer_len: u32,
 
     handles_ptr: *mut Handle,
-    handles_len: usize,
+    handles_len: u32,
 }
 
+// size: 16
 #[repr(C)]
-struct RingResponse {
+pub struct RingResponse {
     /// - `0`: ok
     /// - `1`: unknown handle
     /// - `2`: buffer/handles not long enough; use lengths in buffer_len and handles_len
-    resp_type: u16,
-    user_token: u64,
+    resp_type: u32,
+    user_token: u32,
 
-    buffer_len: usize,
-    handles_len: usize,
+    buffer_len: u32,
+    handles_len: u32,
 }
 
 mod sys {
