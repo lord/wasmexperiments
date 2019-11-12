@@ -1,5 +1,22 @@
 pub type Handle = usize;
 
+/// Contains a bunch of offsets that index into the created buffer, corresponding to various parts
+/// of the ring.
+#[repr(C)]
+struct RingParams {
+    dropped: u32,
+
+    request_head: u32,
+    request_tail: u32,
+    request_count: u32,
+    request_first: u32,
+
+    response_head: u32,
+    response_tail: u32,
+    response_count: u32,
+    response_first: u32,
+}
+
 #[repr(C)]
 struct RingRequest {
     /// - `1`: channel read
@@ -28,7 +45,7 @@ struct RingResponse {
 }
 
 mod sys {
-    use super::Handle;
+    use super::{Handle, RingParams};
     extern "C" {
         pub fn kp_channel_create(handle_a: *mut Handle, handle_b: *mut Handle);
         pub fn kp_channel_write(
@@ -48,7 +65,7 @@ mod sys {
             handle_actual_count: *mut usize,
         ) -> u32; // DEPRECATED
 
-        pub fn kp_ring_create(ring: *mut Handle, req_ptr: usize, req_len: usize, resp_ptr: usize, resp_len: usize);
+        pub fn kp_ring_create(ring: *mut Handle, ring_params: *mut RingParams, buf_ptr: usize, buf_len: usize);
         pub fn kp_ring_enter(ring: Handle, min_process: u32, min_complete: u32, max_time: u32);
 
         pub fn kp_generic_wait(handle: Handle, token: *mut u32); // DEPRECATED
