@@ -6,6 +6,8 @@ function startProcess(wasmFile) {
     shared: true,
   });
   worker.postMessage({wasmFile, memory});
+  worker.onmessage = (e) => {
+  };
 }
 
 startProcess("out.wasm")
