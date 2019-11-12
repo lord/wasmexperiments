@@ -1,20 +1,37 @@
 pub type Handle = usize;
 
-/// Contains a bunch of offsets that index into the created buffer, corresponding to various parts
+/// Contains a bunch of pointers into the created buffer, corresponding to various parts
 /// of the ring.
 #[repr(C)]
 pub struct RingParams {
-    dropped: u32,
+    flags: *mut u32,
 
-    request_head: u32,
-    request_tail: u32,
-    request_count: u32,
-    request_first: u32,
+    request_head: *mut u32,
+    request_tail: *mut u32,
+    request_count: *mut u32,
+    request_first: *mut RingRequest,
 
-    response_head: u32,
-    response_tail: u32,
-    response_count: u32,
-    response_first: u32,
+    response_head: *mut u32,
+    response_tail: *mut u32,
+    response_count: *mut u32,
+    response_first: *mut RingResponse,
+}
+impl RingParams {
+    pub fn new_zero() -> RingParams {
+        RingParams {
+            flags: std::ptr::null_mut(),
+
+            request_head: std::ptr::null_mut(),
+            request_tail: std::ptr::null_mut(),
+            request_count: std::ptr::null_mut(),
+            request_first: std::ptr::null_mut(),
+
+            response_head: std::ptr::null_mut(),
+            response_tail: std::ptr::null_mut(),
+            response_count: std::ptr::null_mut(),
+            response_first: std::ptr::null_mut(),
+        }
+    }
 }
 
 // size: 28
@@ -46,12 +63,12 @@ pub struct RingResponse {
     handles_len: u32,
 }
 
-mod sys {
+pub mod sys {
     use super::{Handle, RingParams};
     extern "C" {
         pub fn kp_channel_create(handle_a: *mut Handle, handle_b: *mut Handle);
 
-        pub fn kp_ring_create(ring: *mut Handle, ring_params: *mut RingParams, buf_ptr: usize, buf_len: usize);
+        pub fn kp_ring_create(ring: *mut Handle, ring_params: *mut RingParams, buf_ptr: *mut u8, buf_len: usize);
         pub fn kp_ring_enter(ring: Handle, min_process: u32, min_complete: u32, max_time: u32);
 
         pub fn kp_generic_close(handle: Handle);

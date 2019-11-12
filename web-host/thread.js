@@ -94,6 +94,60 @@ class Instance {
     this.setUint32(handle_b_ptr, idB);
   }
 
+  kp_ring_create(handle_ptr, ring_params_ptr, buf_ptr, buf_len) {
+    let calc_len = (n) => {
+      let reqs = Math.pow(2, n);
+      let size = 7*4 + reqs*28 + reqs*2*16;
+      return size;
+    };
+    let n = 0;
+    while (calc_len(n+1) < buf_len) {
+      n += 1;
+    }
+    if (n === 0) {
+      // buffer not long enough for even a tiny ring
+      console.warn("buffer was too small for even zero length ring");
+      return 1;
+    }
+
+    let ptrs = {
+      flags: 0 * 4 + buf_ptr,
+
+      request_head: 1*4 + buf_ptr,
+      request_tail: 2*4 + buf_ptr,
+      request_count: 3*4 + buf_ptr,
+      request_first: 7*4 + buf_ptr,
+
+      response_head: 4*4 + buf_ptr,
+      response_tail: 5*4 + buf_ptr,
+      response_count: 6*4 + buf_ptr,
+      response_first: 7*4 + Math.pow(2, n)*28 + buf_ptr,
+    };
+
+    this.setUint32(ptrs.flags, 0);
+    this.setUint32(ptrs.request_head, 0);
+    this.setUint32(ptrs.request_tail, 0);
+    this.setUint32(ptrs.request_count, 0);
+    this.setUint32(ptrs.response_head, 0);
+    this.setUint32(ptrs.response_tail, 0);
+    this.setUint32(ptrs.response_count, 0);
+
+    this.setUint32(ring_params_ptr + 0*4, ptrs.flags);
+    this.setUint32(ring_params_ptr + 1*4, ptrs.request_head);
+    this.setUint32(ring_params_ptr + 2*4, ptrs.request_tail);
+    this.setUint32(ring_params_ptr + 3*4, ptrs.request_count);
+    this.setUint32(ring_params_ptr + 4*4, ptrs.response_head);
+    this.setUint32(ring_params_ptr + 5*4, ptrs.response_tail);
+    this.setUint32(ring_params_ptr + 6*4, ptrs.response_count);
+
+    postMessage({msg: "kp_ring_create", ptrs});
+    return 0;
+  }
+
+  kp_ring_enter(ring, min_process, min_complete, max_time) {
+    console.error("call to unimplemented function kp_ring_enter")
+  }
+
   kp_generic_close(handle) {
     if (this.pollgroups.hasOwnProperty(handle)) {
       delete this.pollgroups[handle];
@@ -106,8 +160,9 @@ class Instance {
     }
   }
 
-  kp_sleep(us) {
+  kp_fork(us) {
     this.wrap_async(done => {
+      console.error("call to unimplemented function kp_fork")
       setTimeout(done, us / 1000)
     })
   }
@@ -116,7 +171,7 @@ class Instance {
     console.log(num)
   }
 
-  kp_args(handle_ptr) {
+  kp_bootstrap(handle_ptr) {
     console.error("call to unimplemented function kp_args")
   }
 
@@ -126,16 +181,12 @@ class Instance {
     this.memory = memory;
     [
       "kp_channel_create",
-      "kp_channel_write",
-      "kp_channel_read",
-      "kp_pollgroup_create",
-      "kp_pollgroup_insert",
-      "kp_pollgroup_cancel",
-      "kp_generic_wait",
+      "kp_ring_create",
+      "kp_ring_enter",
       "kp_generic_close",
-      "kp_sleep",
+      "kp_fork",
       "kp_debug_msg",
-      "kp_args",
+      "kp_bootstrap",
     ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
