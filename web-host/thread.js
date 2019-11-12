@@ -236,10 +236,10 @@ class Instance {
     ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
-    this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
+    // this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
     this.memoryView = new Uint8Array(memory);
     this.instance.exports.main();
-    this.instance.exports.asyncify_stop_unwind();
+    // this.instance.exports.asyncify_stop_unwind();
   }
 }
 
