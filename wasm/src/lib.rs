@@ -24,6 +24,7 @@ pub extern fn main() {
         handles[0].read(&mut buf, &mut handles2);
 
         for byte in &buf {
+            bindings::log(*byte);
         }
 
         bindings::sleep(1_000_000);
