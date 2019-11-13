@@ -13,8 +13,35 @@ class WasmProcess {
   }
 
   handleMsg (data) {
-    console.log("got msg", data)
+    if (data.msg === "kp_channel_create") {
+      this.kp_channel_create(data)
+    } else if (data.msg === "kp_ring_create") {
+      this.kp_ring_create(data)
+    } else if (data.msg === "kp_ring_enter") {
+      this.kp_ring_enter(data)
+    } else if (data.msg === "kp_generic_close") {
+      this.kp_generic_close(data)
+    } else {
+      console.error("unknown msg:", data)
+    }
   }
+
+  kp_channel_create({a_id, b_id}) {
+    console.warn("called unimplemented host fn kp_channel_create:", a_id, b_id)
+  }
+
+  kp_ring_create({ring_id, ptrs}) {
+    console.warn("called unimplemented host fn kp_ring_create:", ring_id, ptrs)
+  }
+
+  kp_ring_enter({ring_id}) {
+    console.warn("called unimplemented host fn kp_ring_enter:", ring_id)
+  }
+
+  kp_generic_close({handle}) {
+    console.warn("called unimplemented host fn kp_generic_close:", handle)
+  }
+
 }
 
 let p = new WasmProcess("out.wasm")

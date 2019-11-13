@@ -73,7 +73,7 @@ class Instance {
 
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
-    postMessage({msg: "kp_channel_create", a: idA, b: idB});
+    postMessage({msg: "kp_channel_create", a_id: idA, b_id: idB});
   }
 
   kp_ring_create(handle_ptr, ring_params_ptr, buf_ptr, buf_len) {
@@ -125,7 +125,7 @@ class Instance {
     this.setUint32(ring_params_ptr + 5*4, ptrs.response_tail);
     this.setUint32(ring_params_ptr + 6*4, ptrs.response_count);
 
-    postMessage({msg: "kp_ring_create", ring_id: id, ring: ptrs});
+    postMessage({msg: "kp_ring_create", ring_id: id, ptrs});
 
     this.setUint32(handle_ptr, id);
     this.rings[id] = ptrs;
