@@ -147,8 +147,8 @@ class Instance {
       return 1;
     }
     let flags = this.getUint32(ring.flags, true);
-    if (flags & 0b10 === 0) {
-      postMessage({msg: "kp_ring_enter", ring_id: id, ring: ptrs});
+    if ((flags & 0b10) === 0) {
+      postMessage({msg: "kp_ring_enter", ring_id: ringId});
     }
 
     let tail = this.getUint32(ring.response_tail, true);

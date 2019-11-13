@@ -1,15 +1,20 @@
-function startProcess(wasmFile) {
-  let worker = new Worker("/thread.js");
-  let memory = new WebAssembly.Memory({
-    initial: 20,
-    maximum: 10000,
-    shared: true,
-  });
-  worker.postMessage({wasmFile, memory});
-  worker.onmessage = (e) => {
-    console.log("got msg:", e.data)
-  };
-  window.mem = () => new Int32Array(memory.buffer)
+class WasmProcess {
+  constructor(wasmFile) {
+    this.worker = new Worker("/thread.js");
+    this.memory = new WebAssembly.Memory({
+      initial: 20,
+      maximum: 10000,
+      shared: true,
+    });
+    this.worker.postMessage({wasmFile, memory: this.memory});
+    this.worker.onmessage = (e) => {
+      this.handleMsg(e.data);
+    };
+  }
+
+  handleMsg (data) {
+    console.log("got msg", data)
+  }
 }
 
-startProcess("out.wasm")
+let p = new WasmProcess("out.wasm")
