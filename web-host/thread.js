@@ -4,8 +4,8 @@ class Instance {
     this.instance = null;
     this.memoryView = null;
 
+    this.rings = {};
     this.channels = {};
-    this.pollgroups = {};
     this.nextHandleId = 1;
 
     this.waitQueue = null;
@@ -26,6 +26,14 @@ class Instance {
     n = n << 8;
     n += this.memoryView[ptr+0];
     return n;
+  }
+
+  wait(ptr, val, timeout) {
+    let idx = ptr >> 2;
+    if (val >= Math.pow(2, 31)) {
+        val = val - Math.pow(2, 32)
+    }
+    Atomics.wait(this.memoryViewI32, idx, val, timeout);
   }
 
   setUint32(ptr, value) {
@@ -70,13 +78,6 @@ class Instance {
     this.maybeWake();
   }
 
-  maybeWake() {
-    if (this.waitQueue !== null && this.waitQueue.length > 0) {
-      this.waitQueue = null;
-      this.waitDone();
-    }
-  }
-
   kp_channel_create(handle_a_ptr, handle_b_ptr) {
     const idA = this.nextHandleId;
     this.nextHandleId += 1;
@@ -95,6 +96,9 @@ class Instance {
   }
 
   kp_ring_create(handle_ptr, ring_params_ptr, buf_ptr, buf_len) {
+    const id = this.nextHandleId;
+    this.nextHandleId += 1;
+
     let calc_len = (n) => {
       let reqs = Math.pow(2, n);
       let size = 7*4 + reqs*28 + reqs*2*16;
@@ -123,6 +127,7 @@ class Instance {
       response_count: 6*4 + buf_ptr,
       response_first: 7*4 + Math.pow(2, n)*28 + buf_ptr,
     };
+    postMessage({msg: "kp_ring_create", ring_id: id, ring: ptrs});
 
     this.setUint32(ptrs.flags, 0);
     this.setUint32(ptrs.request_head, 0);
@@ -140,12 +145,17 @@ class Instance {
     this.setUint32(ring_params_ptr + 5*4, ptrs.response_tail);
     this.setUint32(ring_params_ptr + 6*4, ptrs.response_count);
 
-    postMessage({msg: "kp_ring_create", ptrs});
+    this.setUint32(handle_ptr, id);
+    this.rings[id] = ptrs;
+
     return 0;
   }
 
   kp_ring_enter(ring, min_process, min_complete, max_time) {
-    console.error("call to unimplemented function kp_ring_enter")
+    if (max_time === 0) {
+      max_time = Infinity;
+    }
+    postMessage({msg: "kp_ring_enter", ring_id: id, ring: ptrs});
   }
 
   kp_generic_close(handle) {
@@ -163,7 +173,7 @@ class Instance {
   kp_fork(us) {
     this.wrap_async(done => {
       console.error("call to unimplemented function kp_fork")
-      setTimeout(done, us / 1000)
+      setTimeout(done, 1000)
     })
   }
 
@@ -173,6 +183,14 @@ class Instance {
 
   kp_bootstrap(handle_ptr) {
     console.error("call to unimplemented function kp_args")
+  }
+
+  kp_atomic_store_u32(ptr, val) {
+    Atomics.store(this.memoryViewU32, ptr >> 2, val)
+  }
+
+  kp_atomic_load_u32(ptr) {
+    return Atomics.load(this.memoryViewU32, ptr >> 2)
   }
 
   async run_main(memory) {
@@ -187,11 +205,15 @@ class Instance {
       "kp_fork",
       "kp_debug_msg",
       "kp_bootstrap",
+      "kp_atomic_store_u32",
+      "kp_atomic_load_u32",
     ].forEach(fn => {env[fn] = (...args) => this[fn](...args)});
     let results = await WebAssembly.instantiate(this.wasmBytes, {env});
     this.instance = results.instance;
     this.rewindBufferPtr = this.instance.exports.stack_buffer_alloc(1024 + 8);
     this.memoryView = new Uint8Array(this.memory.buffer);
+    this.memoryViewU32 = new Uint32Array(this.memory.buffer);
+    this.memoryViewI32 = new Int32Array(this.memory.buffer);
     this.instance.exports.main();
     this.instance.exports.asyncify_stop_unwind();
   }

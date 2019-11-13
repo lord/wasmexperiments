@@ -78,6 +78,9 @@ pub mod sys {
         pub fn kp_fork(handle: *mut Handle);
         pub fn kp_debug_msg(msg: u32);
         pub fn kp_bootstrap(bootstrap_handle: *mut Handle);
+
+        pub fn kp_atomic_store_u32(ptr: *mut u32, val: u32);
+        pub fn kp_atomic_load_u32(ptr: *mut u32) -> u32;
     }
 }
 

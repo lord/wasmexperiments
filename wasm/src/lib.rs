@@ -8,4 +8,8 @@ pub extern fn main() {
     let mut handle: bindings::Handle = 0;
     let mut params = bindings::RingParams::new_zero();
     unsafe {bindings::sys::kp_ring_create(&mut handle as *mut bindings::Handle, &mut params as *mut bindings::RingParams, buf.as_mut_ptr(), BUF_CAPACITY);}
+
+    let mut num: u32 = 444;
+    let res = unsafe {bindings::sys::kp_atomic_load_u32(&mut num as *mut u32)};
+    bindings::log(res);
 }
