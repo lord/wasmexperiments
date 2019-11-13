@@ -25,8 +25,8 @@ class Dispatch {
     this.processes[pid].channels[handleA] = global_a;
     this.processes[pid].channels[handleB] = global_b;
 
-    this.channels[global_a] = {pid, handle: handleA, queue: []};
-    this.channels[global_b] = {pid, handle: handleB, queue: []};
+    this.channels[global_a] = {pid, handle: handleA, queue: [], pair: global_b};
+    this.channels[global_b] = {pid, handle: handleB, queue: [], pair: global_a};
   }
 
   closeChannel(globalId) {
