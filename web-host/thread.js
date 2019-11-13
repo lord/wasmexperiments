@@ -147,16 +147,19 @@ class Instance {
       return 1;
     }
     let flags = this.getUint32(ring.flags, true);
-
     if (flags & 0b10 === 0) {
       postMessage({msg: "kp_ring_enter", ring_id: id, ring: ptrs});
     }
 
-    while (this.completedItemsInRing(ring) < min_complete) {
-      console.info("THREAD WAITING ON", ring.flags)
+    let tail = this.getUint32(ring.response_tail, true);
+    let head = this.getUint32(ring.response_head, true);
+
+    while (roundUint32(tail-head) < min_complete) {
+      console.info("THREAD WAITING ON", ring.response_tail)
       // TODO if this loops around because a flag was changed, we want to subtract the elapsed time from max_time
-      this.wait(ring.flags, flags, max_time);
-      flags = this.getUint32(ring.flags, true);
+      this.wait(ring.response_tail, tail, max_time);
+      tail = this.getUint32(ring.response_tail, true);
+      head = this.getUint32(ring.response_head, true);
     }
 
     return 0;
