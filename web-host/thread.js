@@ -66,33 +66,15 @@ class Instance {
     async_fn(done)
   }
 
-  handleOnMessage(queue, msg) {
-    queue.push(msg);
-    let bindOnMessage = (msg) => {
-      msg.handles.forEach(handle => {
-        handle.port.onmessage = (e) => this.handleOnMessage(handle.queue, e.data)
-        handle.queue.forEach(bindOnMessage)
-      })
-    }
-    bindOnMessage(msg)
-    this.maybeWake();
-  }
-
   kp_channel_create(handle_a_ptr, handle_b_ptr) {
     const idA = this.nextHandleId;
     this.nextHandleId += 1;
     const idB = this.nextHandleId;
     this.nextHandleId += 1;
 
-    let channel = new MessageChannel();
-    let queueA = [];
-    let queueB = [];
-    channel.port1.onmessage = (e) => this.handleOnMessage(queueA, e.data);
-    channel.port2.onmessage = (e) => this.handleOnMessage(queueB, e.data);
-    this.channels[idA] = {port: channel.port1, queue: queueA};
-    this.channels[idB] = {port: channel.port2, queue: queueB};
     this.setUint32(handle_a_ptr, idA);
     this.setUint32(handle_b_ptr, idB);
+    postMessage({msg: "kp_channel_create", a: idA, b: idB});
   }
 
   kp_ring_create(handle_ptr, ring_params_ptr, buf_ptr, buf_len) {
@@ -159,17 +141,19 @@ class Instance {
   }
 
   kp_generic_close(handle) {
-    if (this.pollgroups.hasOwnProperty(handle)) {
-      delete this.pollgroups[handle];
-    } else if (this.channels.hasOwnProperty(handle)) {
+    if (this.rings[handle]) {
+      this.rings[handle] = false;
+    } else if (this.channels[handle]) {
       // TODO HANDLE CLOSE FROM OTHER SIDE
-      this.channels[handle].port.close()
-      delete this.channels[handle];
+      this.channels[handle] = false;
     } else {
       console.error("attempted to close unknown handle:", handle);
+      return
     }
+    postMessage({msg: "kp_generic_close", handle: id});
   }
 
+  // TODO fork should be at a higher level (like at process creation) than syscalls i think
   kp_fork(us) {
     this.wrap_async(done => {
       console.error("call to unimplemented function kp_fork")
