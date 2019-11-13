@@ -9,6 +9,7 @@ function startProcess(wasmFile) {
   worker.onmessage = (e) => {
     console.log("got msg:", e.data)
   };
+  window.mem = memory
 }
 
 startProcess("out.wasm")
