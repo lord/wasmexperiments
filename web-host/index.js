@@ -30,7 +30,14 @@ class Dispatch {
   }
 
   closeChannel(globalId) {
-    console.error("unimplemented closeChannel on Dispatch")
+    let channel = this.channels[globalId];
+    this.channels[globalId] = false;
+    this.processes[channel.pid].channels[channel.handle] = false;
+
+    if (this.channels[channel.pair]) {
+      // set this pair's pair attribute to zero to indicate channel is closed
+      this.channels[channel.pair].pair = 0;
+    }
   }
 }
 
