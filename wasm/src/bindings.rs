@@ -4,6 +4,8 @@ pub type Handle = usize;
 /// of the ring.
 #[repr(C)]
 pub struct RingParams {
+    // 0b0001: indicates if ring has been dropped yet
+    // 0b0010: indicates if ring is still running
     flags: *mut u32,
 
     request_head: *mut u32,
@@ -69,7 +71,7 @@ pub mod sys {
         pub fn kp_channel_create(handle_a: *mut Handle, handle_b: *mut Handle);
 
         pub fn kp_ring_create(ring: *mut Handle, ring_params: *mut RingParams, buf_ptr: *mut u8, buf_len: usize);
-        pub fn kp_ring_enter(ring: Handle, min_process: u32, min_complete: u32, max_time: u32);
+        pub fn kp_ring_enter(ring: Handle, min_complete: u32, max_time: u32);
 
         pub fn kp_generic_close(handle: Handle);
 

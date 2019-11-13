@@ -3,13 +3,12 @@ class Instance {
     this.wasmBytes = bytes;
     this.instance = null;
     this.memoryView = null;
+    this.memoryViewU32 = null;
+    this.memoryViewI32 = null;
 
     this.rings = {};
     this.channels = {};
     this.nextHandleId = 1;
-
-    this.waitQueue = null;
-    this.waitDone = null;
 
     this.rewindBufferPtr = null;
     this.rewindActive = false;
@@ -109,7 +108,6 @@ class Instance {
       response_count: 6*4 + buf_ptr,
       response_first: 7*4 + Math.pow(2, n)*28 + buf_ptr,
     };
-    postMessage({msg: "kp_ring_create", ring_id: id, ring: ptrs});
 
     this.setUint32(ptrs.flags, 0);
     this.setUint32(ptrs.request_head, 0);
@@ -127,17 +125,41 @@ class Instance {
     this.setUint32(ring_params_ptr + 5*4, ptrs.response_tail);
     this.setUint32(ring_params_ptr + 6*4, ptrs.response_count);
 
+    postMessage({msg: "kp_ring_create", ring_id: id, ring: ptrs});
+
     this.setUint32(handle_ptr, id);
     this.rings[id] = ptrs;
 
     return 0;
   }
 
-  kp_ring_enter(ring, min_process, min_complete, max_time) {
+  completedItemsInRing(ring) {
+    return roundUint32(this.getUint32(ring.response_tail, true) - this.getUint32(ring.response_head, true));
+  }
+
+  kp_ring_enter(ringId, min_complete, max_time) {
     if (max_time === 0) {
       max_time = Infinity;
     }
-    postMessage({msg: "kp_ring_enter", ring_id: id, ring: ptrs});
+    let ring = this.rings[ringId];
+    if (!ring) {
+      console.error("unknown ring:", ring);
+      return 1;
+    }
+    let flags = this.getUint32(ring.flags, true);
+
+    if (flags & 0b10 === 0) {
+      postMessage({msg: "kp_ring_enter", ring_id: id, ring: ptrs});
+    }
+
+    while (this.completedItemsInRing(ring) < min_complete) {
+      console.info("THREAD WAITING ON", ring.flags)
+      // TODO if this loops around because a flag was changed, we want to subtract the elapsed time from max_time
+      this.wait(ring.flags, flags, max_time);
+      flags = this.getUint32(ring.flags, true);
+    }
+
+    return 0;
   }
 
   kp_generic_close(handle) {
@@ -201,6 +223,12 @@ class Instance {
     this.instance.exports.main();
     this.instance.exports.asyncify_stop_unwind();
   }
+}
+
+const mod = (x, n) => (x % n + n) % n
+
+function roundUint32(n) {
+  return mod(n, Math.pow(2, 32));
 }
 
 let started = false;
