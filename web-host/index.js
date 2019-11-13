@@ -2,7 +2,7 @@ class Dispatch {
   constructor() {
     // maps process ids to WasmProcess instances
     this.processes = {}
-    // maps global channel ids to 
+    // maps global channel ids -> {pid, handle}
     this.channels = {}
     this.nextId = 1;
   }
@@ -11,17 +11,34 @@ class Dispatch {
     let id = this.nextId;
     this.nextId += 1;
 
-    this.processes[id] = new WasmProcess("out.wasm");
+    this.processes[id] = new WasmProcess("out.wasm", id, this);
 
     return id;
+  }
+
+  newChannel(pid, handleA, handleB) {
+    let global_a = this.nextId;
+    this.nextId += 1;
+    let global_b = this.nextId;
+    this.nextId += 1;
+
+    this.processes[pid].channels[handleA] = global_a;
+    this.processes[pid].channels[handleB] = global_b;
+
+    this.channels[global_a] = {pid, handle: handleA, queue: []};
+    this.channels[global_b] = {pid, handle: handleB, queue: []};
   }
 }
 
 class WasmProcess {
-  constructor(wasmFile, dispatch){
+  constructor(wasmFile, pid, dispatch){
     this.dispatch = dispatch;
+    this.pid = pid;
     this.worker = new Worker("/thread.js");
+    /// maps internal channel ids to global ids in dispatch
     this.channels = {};
+    /// maps ring ids -> ptr structs
+    this.rings = {};
     this.memory = new WebAssembly.Memory({
       initial: 20,
       maximum: 10000,
@@ -48,11 +65,11 @@ class WasmProcess {
   }
 
   kp_channel_create({a_id, b_id}) {
-    console.warn("called unimplemented host fn kp_channel_create:", a_id, b_id)
+    this.dispatch.newChannel(this.pid, a_id, b_id);
   }
 
   kp_ring_create({ring_id, ptrs}) {
-    console.warn("called unimplemented host fn kp_ring_create:", ring_id, ptrs)
+    this.rings[ring_id] = ptrs;
   }
 
   kp_ring_enter({ring_id}) {
