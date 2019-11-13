@@ -86,9 +86,9 @@ pub mod sys {
     }
 }
 
-pub fn log<T: Into<u32>>(msg: T) {
+pub fn log(msg: u32) {
     unsafe {
-        sys::kp_debug_msg(msg.into());
+        sys::kp_debug_msg(msg);
     }
 }
 

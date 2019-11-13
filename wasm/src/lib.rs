@@ -8,7 +8,7 @@ pub extern fn main() {
     let mut handle: bindings::Handle = 0;
     let mut params = bindings::RingParams::new_zero();
     unsafe {bindings::sys::kp_ring_create(&mut handle as *mut bindings::Handle, &mut params as *mut bindings::RingParams, buf.as_mut_ptr(), buf.len());}
-    bindings::log(1u32);
+    bindings::log(1);
     unsafe {bindings::sys::kp_ring_enter(handle, 1, 0);}
-    bindings::log(2u32);
+    bindings::log(2);
 }
