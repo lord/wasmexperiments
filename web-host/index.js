@@ -1,6 +1,27 @@
+class Dispatch {
+  constructor() {
+    // maps process ids to WasmProcess instances
+    this.processes = {}
+    // maps global channel ids to 
+    this.channels = {}
+    this.nextId = 1;
+  }
+
+  newProcess(wasmFile) {
+    let id = this.nextId;
+    this.nextId += 1;
+
+    this.processes[id] = new WasmProcess("out.wasm");
+
+    return id;
+  }
+}
+
 class WasmProcess {
-  constructor(wasmFile) {
+  constructor(wasmFile, dispatch){
+    this.dispatch = dispatch;
     this.worker = new Worker("/thread.js");
+    this.channels = {};
     this.memory = new WebAssembly.Memory({
       initial: 20,
       maximum: 10000,
@@ -41,7 +62,7 @@ class WasmProcess {
   kp_generic_close({handle}) {
     console.warn("called unimplemented host fn kp_generic_close:", handle)
   }
-
 }
 
-let p = new WasmProcess("out.wasm")
+let dispatch = new Dispatch()
+dispatch.newProcess("out.wasm")
