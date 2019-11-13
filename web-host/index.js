@@ -28,6 +28,10 @@ class Dispatch {
     this.channels[global_a] = {pid, handle: handleA, queue: []};
     this.channels[global_b] = {pid, handle: handleB, queue: []};
   }
+
+  closeChannel(globalId) {
+    console.error("unimplemented closeChannel on Dispatch")
+  }
 }
 
 class WasmProcess {
@@ -65,6 +69,7 @@ class WasmProcess {
   }
 
   kp_channel_create({a_id, b_id}) {
+    // TODO channel create message could come AFTER I/O is enqueued.
     this.dispatch.newChannel(this.pid, a_id, b_id);
   }
 
@@ -77,7 +82,13 @@ class WasmProcess {
   }
 
   kp_generic_close({handle}) {
-    console.warn("called unimplemented host fn kp_generic_close:", handle)
+    if (this.rings[handle]) {
+      this.rings[handle] = false;
+    } else if (this.channels[handle]) {
+      this.dispatch.closeChannel(this.channels[handle])
+    } else {
+      console.error("attempted to close unknown handle:", handle);
+    }
   }
 }
 
