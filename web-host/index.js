@@ -82,10 +82,17 @@ class WasmProcess {
 
   kp_ring_create({ring_id, ptrs}) {
     this.rings[ring_id] = ptrs;
+    this.rings[ring_id].polling = false;
   }
 
   kp_ring_enter({ring_id}) {
-    console.warn("called unimplemented host fn kp_ring_enter:", ring_id)
+    if (!this.rings[ring_id].polling) {
+      this.rings[ring_id].polling = true;
+      let view = (new Int32Array(this.memory.buffer));
+      Atomics.store(view, this.rings[ring_id].flags >> 2, 0b010);
+      setTimeout(() => this.pollRing(ring_id), 1);
+    }
+    this.checkRing();
   }
 
   kp_generic_close({handle}) {
@@ -96,6 +103,18 @@ class WasmProcess {
     } else {
       console.error("attempted to close unknown handle:", handle);
     }
+  }
+
+  pollRing(ringId) {
+    // TODO actually maybe poll several times?
+    this.rings[ringId].polling = false;
+    let view = (new Int32Array(this.memory.buffer));
+    Atomics.store(view, this.rings[ringId].flags >> 2, 0b000);
+    this.checkRing(ringId)
+  }
+
+  checkRing(ringId) {
+    console.warn("checking for new messages unimplemented")
   }
 }
 
