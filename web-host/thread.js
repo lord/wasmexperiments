@@ -32,7 +32,7 @@ class Instance {
     if (val >= Math.pow(2, 31)) {
         val = val - Math.pow(2, 32)
     }
-    Atomics.wait(this.memoryViewI32, idx, val, timeout);
+    return Atomics.wait(this.memoryViewI32, idx, val, timeout);
   }
 
   setUint32(ptr, value) {
@@ -157,7 +157,9 @@ class Instance {
     while (roundUint32(tail-head) < min_complete) {
       console.info("THREAD WAITING ON", ring.response_tail)
       // TODO if this loops around because a flag was changed, we want to subtract the elapsed time from max_time
-      this.wait(ring.response_tail, tail, max_time);
+      if (this.wait(ring.response_tail, tail, max_time) === "timed-out") {
+        break;
+      }
       tail = this.getUint32(ring.response_tail, true);
       head = this.getUint32(ring.response_head, true);
     }

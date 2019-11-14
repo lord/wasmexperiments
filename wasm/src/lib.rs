@@ -12,6 +12,8 @@ pub extern fn main() {
     let mut params = bindings::RingParams::new_zero();
     unsafe {bindings::sys::kp_ring_create(&mut handle as *mut bindings::Handle, &mut params as *mut bindings::RingParams, buf.as_mut_ptr(), buf.len());}
     bindings::log(1);
-    unsafe {bindings::sys::kp_ring_enter(handle, 1, 0);}
+    unsafe {bindings::sys::kp_ring_enter(handle, 1, 5);}
     bindings::log(2);
+    unsafe {bindings::sys::kp_ring_enter(handle, 0, 0);}
+    bindings::log(3);
 }
